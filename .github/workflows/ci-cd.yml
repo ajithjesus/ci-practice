@@ -1,10 +1,11 @@
 
-name: React Docker CI CD
+name: React CI CD
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -13,18 +14,15 @@ permissions:
   contents: read
 
 jobs:
-
-  # CI - Build and validate
-  ci:
-    name: Continuous Integration
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -35,22 +33,14 @@ jobs:
       - name: Build React
         run: npm run build
 
-      - name: Docker Build
-        run: docker build -t mern-ci:latest .
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload React Build
-        uses: actions/upload-pages-artifact@v4
+      - name: Upload Build
+        if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
-  # CD - Deploy
-  cd:
-    name: Continuous Deployment
-    needs: ci
-
+  deploy:
+    needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     runs-on: ubuntu-latest
@@ -64,6 +54,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
